@@ -111,14 +111,14 @@ function VideoList() {
 
     if (error) {
         return (
-            <Container className="py-4">
-                <h1 className="h2 mb-4">Biblioteca de Vídeos</h1>
-                <Card className="text-center p-5">
-                    <div className="fs-1 mb-3">⚠️</div>
+            <Container className="py-5">
+                <h1 className="display-5 mb-4 fw-bold text-primary">Biblioteca de Vídeos</h1>
+                <Card className="border-0 shadow text-center p-5 rounded-3">
+                    <div className="fs-1 mb-3 text-danger">⚠️</div>
                     <h2 className="h4 fw-bold text-danger mb-3">Erro</h2>
                     <p className="text-muted mb-4">{error}</p>
                     <div className="d-flex justify-content-center">
-                        <Button variant="primary" onClick={fetchVideos}>
+                        <Button variant="primary" onClick={fetchVideos} className="px-4 py-2 rounded-pill">
                             Tentar novamente
                         </Button>
                     </div>
@@ -128,21 +128,30 @@ function VideoList() {
     }
 
     return (
-        <Container className="py-4">
-            <h1 className="h2 mb-4">Biblioteca de Vídeos</h1>
+        <Container className="py-5">
+            <div className="d-flex justify-content-between align-items-center mb-5">
+                <h1 className="display-5 fw-bold text-primary m-0">Biblioteca de Vídeos</h1>
+                <Link to="/upload">
+                    <Button variant="primary" className="rounded-pill px-4 py-2 d-flex align-items-center">
+                        <span className="me-2">+</span>
+                        <span>Adicionar Vídeo</span>
+                    </Button>
+                </Link>
+            </div>
 
             {isLoading ? (
                 <div className="text-center py-5">
-                    <Spinner animation="border" variant="primary" />
+                    <Spinner animation="border" variant="primary" size="lg" />
+                    <p className="mt-3 text-muted">Carregando sua biblioteca...</p>
                 </div>
             ) : videos.length === 0 ? (
-                <Card className="text-center p-5">
-                    <div className="fs-1 mb-3">📭</div>
+                <Card className="border-0 shadow text-center p-5 rounded-3 my-5">
+                    <div className="fs-1 mb-3 text-secondary">📭</div>
                     <h2 className="h4 fw-bold text-secondary mb-3">Nenhum vídeo encontrado</h2>
                     <p className="text-muted mb-4">Adicione vídeos para começar a construir sua biblioteca.</p>
                     <div className="d-flex justify-content-center">
                         <Link to="/upload">
-                            <Button variant="primary">Upload de Vídeo</Button>
+                            <Button variant="primary" className="rounded-pill px-4 py-2">Upload de Vídeo</Button>
                         </Link>
                     </div>
                 </Card>
@@ -161,47 +170,50 @@ function VideoList() {
             )}
 
             {/* Modal de Edição */}
-            <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Editar Vídeo</Modal.Title>
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+                <Modal.Header closeButton className="border-0 pb-0">
+                    <Modal.Title className="fw-bold text-primary">Editar Vídeo</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className="pt-2">
                     <Form onSubmit={handleEditSubmit}>
                         <Form.Group className="mb-3">
-                            <Form.Label>Título</Form.Label>
+                            <Form.Label className="fw-semibold">Título</Form.Label>
                             <Form.Control
                                 type="text"
                                 name="title"
                                 value={editForm.title}
                                 onChange={handleEditChange}
                                 required
+                                className="rounded-3 border-1"
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Descrição</Form.Label>
+                            <Form.Label className="fw-semibold">Descrição</Form.Label>
                             <Form.Control
                                 as="textarea"
                                 name="description"
                                 value={editForm.description}
                                 onChange={handleEditChange}
                                 rows={4}
+                                className="rounded-3 border-1"
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Ordem de exibição</Form.Label>
+                            <Form.Label className="fw-semibold">Ordem de exibição</Form.Label>
                             <Form.Control
                                 type="number"
                                 name="order"
                                 value={editForm.order}
                                 onChange={handleEditChange}
                                 min="1"
+                                className="rounded-3 border-1"
                             />
                         </Form.Group>
-                        <div className="d-flex justify-content-end gap-2">
-                            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                        <div className="d-flex justify-content-end gap-2 mt-4">
+                            <Button variant="outline-secondary" onClick={() => setShowEditModal(false)} className="rounded-pill px-4">
                                 Cancelar
                             </Button>
-                            <Button variant="primary" type="submit">
+                            <Button variant="primary" type="submit" className="rounded-pill px-4">
                                 Salvar alterações
                             </Button>
                         </div>
@@ -210,19 +222,19 @@ function VideoList() {
             </Modal>
 
             {/* Modal de Confirmação de Exclusão */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Confirmar exclusão</Modal.Title>
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+                <Modal.Header closeButton className="border-0 pb-0">
+                    <Modal.Title className="fw-bold text-danger">Confirmar exclusão</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className="pt-2">
                     <p>Tem certeza que deseja excluir o vídeo "{currentVideo?.title}"?</p>
-                    <p className="text-danger">Esta ação não pode ser desfeita.</p>
+                    <p className="text-danger fw-semibold">Esta ação não pode ser desfeita.</p>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                <Modal.Footer className="border-0">
+                    <Button variant="outline-secondary" onClick={() => setShowDeleteModal(false)} className="rounded-pill px-4">
                         Cancelar
                     </Button>
-                    <Button variant="danger" onClick={handleDeleteConfirm}>
+                    <Button variant="danger" onClick={handleDeleteConfirm} className="rounded-pill px-4">
                         Excluir
                     </Button>
                 </Modal.Footer>
@@ -240,60 +252,53 @@ function VideoCard({ video, onEdit, onDelete }) {
     };
 
     return (
-        <Card className="h-100 shadow-sm video-card">
+        <Card className="h-100 border-0 shadow-sm video-card rounded-3 overflow-hidden">
             <div className="video-thumbnail position-relative">
-                {video.thumbnailUrl && !thumbnailError ? (
-                    <ThumbnailImage
-                        thumbnailUrl={video.thumbnailUrl}
-                        alt={`Thumbnail para ${video.title}`}
-                        className="w-100 h-100"
-                        style={{ objectFit: 'cover' }}
-                        onError={handleThumbnailError}
-                    />
-                ) : (
-                    <div className="thumbnail-placeholder d-flex justify-content-center align-items-center bg-light">
-                        <span className="fs-3">🎬</span>
+                <Link to={`/videos/${video.id}`} className="text-decoration-none">
+                    {video.thumbnailUrl && !thumbnailError ? (
+                        <ThumbnailImage
+                            thumbnailUrl={video.thumbnailUrl}
+                            alt={`Thumbnail para ${video.title}`}
+                            className="w-100 h-100"
+                            style={{ objectFit: 'cover' }}
+                            onError={handleThumbnailError}
+                        />
+                    ) : (
+                        <div className="bg-light d-flex align-items-center justify-content-center p-4" style={{ aspectRatio: '16/9' }}>
+                            <span className="display-4 text-secondary">🎬</span>
+                        </div>
+                    )}
+                    <div className="position-absolute top-0 end-0 m-2">
+                        <span className="badge bg-dark bg-opacity-75 px-2 py-1 rounded-pill">
+                            {video.duration ? video.duration : '—:—'}
+                        </span>
                     </div>
-                )}
-                <Link
-                    to={`/videos/${video.id}`}
-                    className="play-button position-absolute top-50 start-50 translate-middle bg-dark bg-opacity-50 rounded-circle d-flex justify-content-center align-items-center"
-                    style={{ width: '40px', height: '40px' }}
-                >
-                    <span className="text-white fs-5">▶️</span>
                 </Link>
             </div>
-
-            <Card.Body>
-                <Card.Title className="fs-5 fw-bold">{video.title}</Card.Title>
-                <Card.Text className="small text-muted mb-3 two-lines">
-                    {video.description}
+            <Card.Body className="d-flex flex-column">
+                <Link to={`/videos/${video.id}`} className="text-decoration-none">
+                    <Card.Title className="fw-bold mb-2 text-truncate" style={{ fontSize: '1.1rem' }}>{video.title}</Card.Title>
+                </Link>
+                <Card.Text className="text-muted small mb-3 two-lines">
+                    {video.description || "Sem descrição"}
                 </Card.Text>
-
-                <div className="d-flex justify-content-between align-items-center">
-                    {video.fileName && (
-                        <small className="text-muted text-truncate me-2" style={{ maxWidth: "120px" }} title={video.fileName}>
-                            {video.fileName}
-                        </small>
-                    )}
-                    <div className="d-flex gap-2 ms-auto">
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={onEdit}
-                            title="Editar vídeo"
-                        >
-                            ✏️
-                        </Button>
-                        <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={onDelete}
-                            title="Excluir vídeo"
-                        >
-                            🗑️
-                        </Button>
-                    </div>
+                <div className="mt-auto d-flex justify-content-between">
+                    <Button
+                        variant="link"
+                        onClick={onEdit}
+                        className="p-0 text-decoration-none text-primary"
+                        aria-label="Editar vídeo"
+                    >
+                        <i className="bi bi-pencil-square me-1"></i> Editar
+                    </Button>
+                    <Button
+                        variant="link"
+                        onClick={onDelete}
+                        className="p-0 text-decoration-none text-danger"
+                        aria-label="Excluir vídeo"
+                    >
+                        <i className="bi bi-trash me-1"></i> Excluir
+                    </Button>
                 </div>
             </Card.Body>
         </Card>

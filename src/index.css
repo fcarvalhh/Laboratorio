@@ -1,6 +1,23 @@
+/* Importação da fonte Poppins do Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+/* Importação dos ícones Bootstrap */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css");
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f8f9fa;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f9fafb;
+  color: #374151;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .content-container {
@@ -14,35 +31,42 @@ body {
   align-items: center;
   justify-content: center;
   color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 .video-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
 }
 
 .video-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
 }
 
 .video-thumbnail {
   aspect-ratio: 16 / 9;
-  background-color: #dee2e6;
+  background-color: #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .upload-area {
-  border: 2px dashed #dee2e6;
-  padding: 2rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 2.5rem;
   text-align: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .upload-area:hover {
-  background-color: #f8f9fa;
+  background-color: #f3f4f6;
+  border-color: #94a3b8;
 }
 
 .two-lines {
@@ -54,4 +78,53 @@ body {
 
 .hover-bg-light:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Estilização dos elementos de formulário */
+.form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+  border-color: #86b7fe;
+}
+
+/* Botões */
+.btn {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Estilização de cards */
+.card {
+  transition: all 0.3s ease;
+}
+
+/* Animações para melhorar a experiência do usuário */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+/* Personalização do spinner */
+.spinner-border {
+  border-width: 0.2em;
+  color: #3b82f6;
 }
