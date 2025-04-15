@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap'
 import { getVideoById, getVideos } from '../data/videos'
+import IndexedDBVideoPlayer from '../components/IndexedDBVideoPlayer'
 
 function VideoPlayer() {
     const { id } = useParams()
@@ -9,7 +10,7 @@ function VideoPlayer() {
     const [video, setVideo] = useState(null)
     const [relatedVideos, setRelatedVideos] = useState([])
     const [isLoading, setIsLoading] = useState(true)
-    const videoRef = useRef(null)
+    const [error, setError] = useState(null)
 
     // Função para bloquear o menu de contexto (clique com botão direito)
     const handleRightClick = (e) => {
@@ -20,11 +21,12 @@ function VideoPlayer() {
     useEffect(() => {
         const fetchVideo = async () => {
             setIsLoading(true)
+            setError(null)
             try {
                 // Simulando um delay de rede
                 await new Promise(resolve => setTimeout(resolve, 300))
 
-                const videoData = getVideoById(id)
+                const videoData = await getVideoById(id)
 
                 if (!videoData) {
                     setVideo(null)
@@ -35,11 +37,12 @@ function VideoPlayer() {
                 setVideo(videoData)
 
                 // Buscar vídeos relacionados (excluindo o atual)
-                const allVideos = getVideos()
+                const allVideos = await getVideos()
                 const related = allVideos.filter(v => v.id !== Number(id)).slice(0, 3)
                 setRelatedVideos(related)
             } catch (error) {
                 console.error('Erro ao carregar vídeo:', error)
+                setError("Não foi possível carregar o vídeo. Tente novamente mais tarde.")
             } finally {
                 setIsLoading(false)
             }
@@ -48,20 +51,30 @@ function VideoPlayer() {
         fetchVideo()
     }, [id])
 
-    const handlePlayPause = () => {
-        if (videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-            } else {
-                videoRef.current.pause();
-            }
-        }
+    const handleVideoError = (errorMsg) => {
+        console.error('Erro no player de vídeo:', errorMsg);
+        setError(`Erro ao reproduzir o vídeo: ${errorMsg}`);
     }
 
     if (isLoading) {
         return (
             <Container className="py-4 text-center">
                 <Spinner animation="border" variant="primary" />
+            </Container>
+        )
+    }
+
+    if (error) {
+        return (
+            <Container className="py-4">
+                <Alert variant="danger" className="text-center p-4">
+                    <div className="fs-1 mb-3">⚠️</div>
+                    <h2 className="h4 fw-bold mb-3">Erro</h2>
+                    <p className="mb-4">{error}</p>
+                    <Button variant="primary" onClick={() => window.location.reload()}>
+                        Tentar novamente
+                    </Button>
+                </Alert>
             </Container>
         )
     }
@@ -93,14 +106,14 @@ function VideoPlayer() {
             <Card className="mb-4 shadow-sm overflow-hidden">
                 <div className="player-container">
                     {video.url ? (
-                        <video
-                            ref={videoRef}
-                            src={video.url}
+                        <IndexedDBVideoPlayer
+                            videoId={video.url}
                             className="w-100 h-100"
                             style={{ objectFit: 'contain' }}
-                            controls
+                            controls={true}
                             poster={video.thumbnail}
                             onContextMenu={handleRightClick}
+                            onError={handleVideoError}
                         />
                     ) : (
                         <div className="text-center">
@@ -148,11 +161,9 @@ function VideoPlayer() {
                                         <div className="d-flex p-2 border rounded hover-bg-light">
                                             <div className="video-thumbnail rounded me-2" style={{ width: '4rem', height: '3rem' }}>
                                                 {related.url ? (
-                                                    <video
-                                                        src={related.url}
-                                                        className="w-100 h-100"
-                                                        style={{ objectFit: 'cover' }}
-                                                    />
+                                                    <div className="w-100 h-100 bg-light d-flex justify-content-center align-items-center">
+                                                        <span className="fs-6">🎬</span>
+                                                    </div>
                                                 ) : (
                                                     <div className="fs-6">🎬</div>
                                                 )}

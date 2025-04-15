@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Container, Row, Col, Card, Spinner, Button, Modal, Form } from 'react-bootstrap'
 import { getVideos, updateVideo, deleteVideo } from '../data/videos'
+import IndexedDBVideoPlayer from '../components/IndexedDBVideoPlayer'
 
 function VideoList() {
     const [videos, setVideos] = useState([])
     const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(null)
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [currentVideo, setCurrentVideo] = useState(null)
@@ -17,13 +19,15 @@ function VideoList() {
 
     const fetchVideos = async () => {
         setIsLoading(true)
+        setError(null)
         try {
             // Delay simulado de 500ms
             await new Promise(resolve => setTimeout(resolve, 300))
-            const data = getVideos()
+            const data = await getVideos()
             setVideos(data)
         } catch (error) {
             console.error('Erro ao carregar vídeos:', error)
+            setError("Não foi possível carregar os vídeos. Tente novamente mais tarde.")
         } finally {
             setIsLoading(false)
         }
@@ -56,25 +60,71 @@ function VideoList() {
         }))
     }
 
-    const handleEditSubmit = (e) => {
+    const handleEditSubmit = async (e) => {
         e.preventDefault()
         if (currentVideo) {
-            updateVideo(currentVideo.id, {
-                title: editForm.title,
-                description: editForm.description,
-                order: editForm.order !== '' ? parseInt(editForm.order) : currentVideo.order
-            })
-            setShowEditModal(false)
-            fetchVideos()
+            try {
+                await updateVideo(currentVideo.id, {
+                    title: editForm.title,
+                    description: editForm.description,
+                    order: editForm.order !== '' ? parseInt(editForm.order) : currentVideo.order
+                })
+                setShowEditModal(false)
+                fetchVideos()
+            } catch (error) {
+                console.error('Erro ao atualizar vídeo:', error)
+                alert('Não foi possível atualizar o vídeo. Tente novamente.')
+            }
         }
     }
 
-    const handleDeleteConfirm = () => {
-        if (currentVideo) {
-            deleteVideo(currentVideo.id)
-            setShowDeleteModal(false)
-            fetchVideos()
+    const handleDeleteConfirm = async () => {
+        if (!currentVideo) return;
+
+        try {
+            setIsLoading(true);
+            await deleteVideo(currentVideo.id);
+            setShowDeleteModal(false);
+            fetchVideos();
+            // Mostrar mensagem de sucesso temporária
+            const successMessage = document.createElement('div');
+            successMessage.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+            successMessage.style.zIndex = '9999';
+            successMessage.innerHTML = `<strong>Sucesso!</strong> Vídeo "${currentVideo.title}" excluído.`;
+            document.body.appendChild(successMessage);
+            setTimeout(() => document.body.removeChild(successMessage), 3000);
+        } catch (error) {
+            console.error('Erro ao excluir vídeo:', error);
+            setShowDeleteModal(false);
+
+            // Criar uma mensagem de erro mais detalhada
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3';
+            errorMessage.style.zIndex = '9999';
+            errorMessage.innerHTML = `<strong>Erro ao excluir vídeo:</strong> ${error.message}`;
+            document.body.appendChild(errorMessage);
+            setTimeout(() => document.body.removeChild(errorMessage), 5000);
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    if (error) {
+        return (
+            <Container className="py-4">
+                <h1 className="h2 mb-4">Biblioteca de Vídeos</h1>
+                <Card className="text-center p-5">
+                    <div className="fs-1 mb-3">⚠️</div>
+                    <h2 className="h4 fw-bold text-danger mb-3">Erro</h2>
+                    <p className="text-muted mb-4">{error}</p>
+                    <div className="d-flex justify-content-center">
+                        <Button variant="primary" onClick={fetchVideos}>
+                            Tentar novamente
+                        </Button>
+                    </div>
+                </Card>
+            </Container>
+        )
     }
 
     return (
@@ -182,17 +232,21 @@ function VideoList() {
 }
 
 function VideoCard({ video, onEdit, onDelete }) {
+    const [thumbnailError, setThumbnailError] = useState(false);
+
     return (
         <Card className="h-100 shadow-sm video-card">
             <div className="video-thumbnail">
-                {video.url ? (
-                    <video
-                        src={video.url}
-                        className="w-100 h-100"
-                        style={{ objectFit: 'cover' }}
-                    />
+                {video.url && !thumbnailError ? (
+                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                        <div className="thumbnail-placeholder">
+                            <span className="fs-3">🎬</span>
+                        </div>
+                    </div>
                 ) : (
-                    <span className="fs-3">🎬</span>
+                    <div className="thumbnail-placeholder">
+                        <span className="fs-3">🎬</span>
+                    </div>
                 )}
             </div>
 

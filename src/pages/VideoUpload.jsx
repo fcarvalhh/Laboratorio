@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Container, Form, Row, Col, Card, Button, ProgressBar, Alert } from 'react-bootstrap'
 import { addVideo } from '../data/videos'
+import { uploadVideo } from '../services/dbService'
 
 function VideoUpload() {
     const navigate = useNavigate()
@@ -20,6 +21,7 @@ function VideoUpload() {
     const [uploadProgress, setUploadProgress] = useState(0)
     const [uploadComplete, setUploadComplete] = useState(false)
     const [uploadedVideo, setUploadedVideo] = useState(null)
+    const [error, setError] = useState(null)
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -32,19 +34,26 @@ function VideoUpload() {
     const handleFileChange = (e) => {
         const file = e.target.files[0]
         if (file) {
+            // Verificar o tamanho do arquivo (limite de 50MB para IndexedDB)
+            const MAX_SIZE = 50 * 1024 * 1024; // 50MB em bytes
+            if (file.size > MAX_SIZE) {
+                setError(`O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 50MB.`);
+                return;
+            }
+
             setFormData(prev => ({
                 ...prev,
                 file
             }))
 
-            // Criar URL para o arquivo de vídeo
+            // Criar URL para preview local do arquivo de vídeo
             const url = URL.createObjectURL(file)
             setPreview(url)
-            setVideoUrl(url)
+            setError(null)
         }
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
 
         // Previne múltiplas chamadas
@@ -52,44 +61,46 @@ function VideoUpload() {
             return;
         }
 
-        uploadProcessing.current = true;
-        setIsUploading(true)
-        setUploadProgress(0)
+        try {
+            uploadProcessing.current = true;
+            setIsUploading(true)
+            setUploadProgress(0)
+            setError(null)
 
-        const interval = setInterval(() => {
-            setUploadProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval)
-                    setIsUploading(false)
+            // Gerar ID único para o vídeo
+            const videoId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-                    // Adicionar o vídeo aos dados mockados
-                    const newVideo = addVideo({
-                        title: formData.title,
-                        description: formData.description,
-                        order: parseInt(formData.order) || 1,
-                        url: videoUrl,
-                        fileName: formData.file.name
-                    })
+            // Upload do arquivo para o IndexedDB
+            const dbUrl = await uploadVideo(
+                formData.file,
+                videoId,
+                (progress) => setUploadProgress(progress)
+            );
 
-                    // Verificar se o vídeo foi adicionado com sucesso (não é duplicado)
-                    if (newVideo) {
-                        setUploadedVideo(newVideo)
-                        setUploadComplete(true)
-                    } else {
-                        // Lida com o caso de duplicata: informa o usuário
-                        // Poderia mostrar uma mensagem de erro mais específica aqui
-                        console.error("Falha no upload: Vídeo duplicado detectado.");
-                        // Resetar estado para permitir novo upload ou mostrar erro
-                        // O estado uploadProcessing.current precisa ser resetado aqui também
-                        // para permitir que o usuário tente novamente ou submeta outro vídeo
-                        // Poderia também setar um estado de erro para mostrar na UI
-                    }
-                    uploadProcessing.current = false; // Resetar independentemente do sucesso
-                    return 100
-                }
-                return prev + 10
-            })
-        }, 300)
+            // Salvar os metadados do vídeo com a URL de referência
+            const newVideo = await addVideo({
+                title: formData.title,
+                description: formData.description,
+                order: parseInt(formData.order) || 1,
+                url: dbUrl, // URL de referência para o IndexedDB
+                fileName: formData.file.name,
+                videoId: videoId // Guardar o ID para recuperação
+            });
+
+            if (newVideo) {
+                setUploadedVideo(newVideo)
+                setVideoUrl(dbUrl)
+                setUploadComplete(true)
+            } else {
+                setError("Não foi possível adicionar o vídeo - título ou arquivo já existe.")
+            }
+        } catch (error) {
+            console.error("Erro durante o upload:", error);
+            setError(`Falha no upload: ${error.message}`);
+        } finally {
+            setIsUploading(false)
+            uploadProcessing.current = false
+        }
     }
 
     const handleViewVideo = () => {
@@ -104,6 +115,7 @@ function VideoUpload() {
         setVideoUrl(null)
         setUploadComplete(false)
         setUploadedVideo(null)
+        setError(null)
         uploadProcessing.current = false;
     }
 
@@ -115,7 +127,7 @@ function VideoUpload() {
                 <Alert variant="success" className="text-center p-4">
                     <div className="fs-1 mb-3">✅</div>
                     <h2 className="h4 fw-bold mb-3">Upload Concluído!</h2>
-                    <p className="mb-4">Seu vídeo foi enviado com sucesso.</p>
+                    <p className="mb-4">Seu vídeo foi enviado com sucesso e está armazenado no seu navegador.</p>
                     <div className="d-flex flex-wrap justify-content-center gap-2">
                         <Button
                             variant="primary"
@@ -137,6 +149,12 @@ function VideoUpload() {
             ) : (
                 <Card className="shadow-sm">
                     <Card.Body>
+                        {error && (
+                            <Alert variant="danger" className="mb-4">
+                                {error}
+                            </Alert>
+                        )}
+
                         <Form onSubmit={handleSubmit}>
                             <Row>
                                 <Col md={6}>
@@ -196,7 +214,7 @@ function VideoUpload() {
                                             >
                                                 <div className="fs-2 text-secondary mb-2">📁</div>
                                                 <p className="text-muted mb-3">Clique para selecionar um arquivo de vídeo</p>
-                                                <span className="badge bg-light text-primary">MP4, WebM, AVI</span>
+                                                <span className="badge bg-light text-primary">MP4, WebM, AVI (máx 50MB)</span>
                                             </div>
                                         )}
 
@@ -224,6 +242,9 @@ function VideoUpload() {
 
                             {isUploading && (
                                 <div className="my-3">
+                                    <p className="text-center mb-2">
+                                        Processando e armazenando vídeo...
+                                    </p>
                                     <ProgressBar
                                         animated
                                         now={uploadProgress}
