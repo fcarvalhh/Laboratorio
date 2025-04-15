@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { getThumbnail } from '../services/dbService';
 
 /**
- * Componente para exibir uma imagem thumbnail armazenada no IndexedDB
+ * Componente para exibir uma imagem thumbnail armazenada no IndexedDB ou Firebase Storage
  * @param {Object} props
- * @param {string} props.thumbnailUrl - URL da thumbnail no formato "indexeddb-thumb://ID"
+ * @param {string} props.thumbnailUrl - URL da thumbnail (Firebase URL ou "indexeddb-thumb://ID")
  * @param {string} props.alt - Texto alternativo
  * @param {string} props.className - Classes CSS para o elemento img
  * @param {Object} props.style - Estilos inline para o elemento img
@@ -25,11 +25,10 @@ function ThumbnailImage({
         let isMounted = true;
 
         const loadThumbnail = async () => {
-            // Verificar se o ID da thumbnail está no formato correto
-            if (!thumbnailUrl || !thumbnailUrl.startsWith('indexeddb-thumb://')) {
+            if (!thumbnailUrl) {
                 setLoading(false);
-                setError('Formato de URL de thumbnail inválido');
-                if (onError) onError('Formato de URL de thumbnail inválido');
+                setError('URL de thumbnail não fornecida');
+                if (onError) onError('URL de thumbnail não fornecida');
                 return;
             }
 
@@ -37,20 +36,29 @@ function ThumbnailImage({
                 setLoading(true);
                 setError(null);
 
-                // Extrair o ID real
-                const thumbnailId = thumbnailUrl.replace('indexeddb-thumb://', '');
+                // Verificar se a thumbnail está no IndexedDB ou é uma URL do Firebase
+                if (thumbnailUrl.startsWith('indexeddb-thumb://')) {
+                    // Extrair o ID real
+                    const thumbnailId = thumbnailUrl.replace('indexeddb-thumb://', '');
 
-                // Recuperar a thumbnail do IndexedDB
-                const thumbnailData = await getThumbnail(thumbnailId);
+                    // Recuperar a thumbnail do IndexedDB
+                    const thumbnailData = await getThumbnail(thumbnailId);
 
-                if (!thumbnailData) {
-                    throw new Error('Thumbnail não encontrada no banco de dados');
-                }
+                    if (!thumbnailData) {
+                        throw new Error('Thumbnail não encontrada no banco de dados local');
+                    }
 
-                // Definir a fonte para a imagem
-                if (isMounted) {
-                    setImgSrc(thumbnailData);
-                    setLoading(false);
+                    // Definir a fonte para a imagem
+                    if (isMounted) {
+                        setImgSrc(thumbnailData);
+                        setLoading(false);
+                    }
+                } else {
+                    // Para URLs do Firebase ou outras URLs externas, usar diretamente
+                    if (isMounted) {
+                        setImgSrc(thumbnailUrl);
+                        setLoading(false);
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao carregar thumbnail:', err);

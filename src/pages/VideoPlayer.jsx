@@ -2,10 +2,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap'
 import { getVideoById, getVideos } from '../data/videos'
-import IndexedDBVideoPlayer from '../components/IndexedDBVideoPlayer'
+import VideoPlayer from '../components/VideoPlayer'
 import ThumbnailImage from '../components/ThumbnailImage'
 
-function VideoPlayer() {
+function VideoPlayerPage() {
     const { id } = useParams()
     const navigate = useNavigate()
     const [video, setVideo] = useState(null)
@@ -112,8 +112,8 @@ function VideoPlayer() {
             <Card className="mb-4 shadow-sm overflow-hidden">
                 <div className="player-container">
                     {video.url ? (
-                        <IndexedDBVideoPlayer
-                            videoId={video.url}
+                        <VideoPlayer
+                            videoUrl={video.url}
                             className="w-100 h-100"
                             style={{ objectFit: 'contain' }}
                             controls={true}
@@ -214,4 +214,4 @@ function VideoPlayer() {
     )
 }
 
-export default VideoPlayer 
+export default VideoPlayerPage 

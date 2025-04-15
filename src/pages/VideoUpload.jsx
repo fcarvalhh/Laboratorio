@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Container, Form, Row, Col, Card, Button, ProgressBar, Alert } from 'react-bootstrap'
 import { addVideo } from '../data/videos'
-import { uploadVideo, uploadThumbnail } from '../services/dbService'
+import { uploadVideoToFirebase, uploadThumbnailToFirebase } from '../services/firebaseStorageService'
 
 function VideoUpload() {
     const navigate = useNavigate()
@@ -37,10 +37,10 @@ function VideoUpload() {
     const handleFileChange = (e) => {
         const file = e.target.files[0]
         if (file) {
-            // Verificar o tamanho do arquivo (limite de 50MB para IndexedDB)
-            const MAX_SIZE = 50 * 1024 * 1024; // 50MB em bytes
+            // Verificar o tamanho do arquivo (limite aumentado para Firebase Storage)
+            const MAX_SIZE = 100 * 1024 * 1024; // 100MB em bytes
             if (file.size > MAX_SIZE) {
-                setError(`O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 50MB.`);
+                setError(`O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 100MB.`);
                 return;
             }
 
@@ -103,41 +103,43 @@ function VideoUpload() {
 
             // Gerar ID único para a thumbnail, se existir
             let thumbnailId = null;
-            let thumbnailDbUrl = null;
+            let thumbnailFirebaseUrl = null;
 
             if (formData.thumbnailFile) {
                 thumbnailId = `thumb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                // Upload da thumbnail para o IndexedDB
-                thumbnailDbUrl = await uploadThumbnail(
+
+                // Upload da thumbnail para o Firebase
+                thumbnailFirebaseUrl = await uploadThumbnailToFirebase(
                     formData.thumbnailFile,
                     thumbnailId
                 );
             }
 
-            // Upload do arquivo de vídeo para o IndexedDB
-            const videoDbUrl = await uploadVideo(
+            // Upload do arquivo de vídeo para o Firebase Storage
+            const videoFirebaseUrl = await uploadVideoToFirebase(
                 formData.file,
                 videoId,
                 (progress) => setUploadProgress(progress)
             );
 
-            // Salvar os metadados do vídeo com a URL de referência
+            // Salvar os metadados do vídeo com a URL do Firebase
             const newVideo = await addVideo({
                 title: formData.title,
                 description: formData.description,
                 order: parseInt(formData.order) || 1,
-                url: videoDbUrl, // URL de referência para o IndexedDB
+                url: videoFirebaseUrl, // URL do Firebase Storage
                 fileName: formData.file.name,
                 videoId: videoId, // Guardar o ID para recuperação
-                thumbnailUrl: thumbnailDbUrl, // URL da thumbnail (se houver)
+                thumbnailUrl: thumbnailFirebaseUrl, // URL da thumbnail no Firebase (se houver)
                 thumbnailId: thumbnailId, // ID da thumbnail (se houver)
-                hasThumbnail: !!thumbnailDbUrl // Flag indicando se tem thumbnail
+                hasThumbnail: !!thumbnailFirebaseUrl, // Flag indicando se tem thumbnail
+                storageType: 'firebase' // Indica que está no Firebase
             });
 
             if (newVideo) {
                 setUploadedVideo(newVideo)
-                setVideoUrl(videoDbUrl)
-                setThumbnailUrl(thumbnailDbUrl)
+                setVideoUrl(videoFirebaseUrl)
+                setThumbnailUrl(thumbnailFirebaseUrl)
                 setUploadComplete(true)
             } else {
                 setError("Não foi possível adicionar o vídeo - título ou arquivo já existe.")
@@ -183,7 +185,7 @@ function VideoUpload() {
                 <Alert variant="success" className="text-center p-4">
                     <div className="fs-1 mb-3">✅</div>
                     <h2 className="h4 fw-bold mb-3">Upload Concluído!</h2>
-                    <p className="mb-4">Seu vídeo foi enviado com sucesso e está armazenado no seu navegador.</p>
+                    <p className="mb-4">Seu vídeo foi enviado com sucesso e está armazenado no Firebase Storage.</p>
                     <div className="d-flex flex-wrap justify-content-center gap-2">
                         <Button
                             variant="primary"
@@ -316,7 +318,7 @@ function VideoUpload() {
                                             >
                                                 <div className="fs-2 text-secondary mb-2">📁</div>
                                                 <p className="text-muted mb-3">Clique para selecionar um arquivo de vídeo</p>
-                                                <span className="badge bg-light text-primary">MP4, WebM, AVI (máx 50MB)</span>
+                                                <span className="badge bg-light text-primary">MP4, WebM, AVI (máx 100MB)</span>
                                             </div>
                                         )}
 

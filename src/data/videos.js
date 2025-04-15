@@ -4,6 +4,7 @@ import {
     saveVideoMetadata,
     deleteVideoWithMetadata
 } from '../services/dbService';
+import { deleteVideoFromFirebase, deleteThumbnailFromFirebase } from '../services/firebaseStorageService';
 
 // Manter uma cópia em memória para operações rápidas
 let videos = [];
@@ -116,7 +117,32 @@ export const deleteVideo = async (id) => {
     const deletedVideo = videos[index];
 
     try {
-        // Primeiro tentar excluir do IndexedDB
+        // Verificar tipo de armazenamento para excluir do local adequado
+        if (deletedVideo.storageType === 'firebase') {
+            // Excluir vídeo do Firebase Storage, se for uma URL do Firebase
+            if (deletedVideo.url && !deletedVideo.url.startsWith('indexeddb://')) {
+                try {
+                    await deleteVideoFromFirebase(deletedVideo.url);
+                    console.log(`Vídeo excluído do Firebase Storage: ${deletedVideo.url}`);
+                } catch (error) {
+                    console.error(`Erro ao excluir vídeo do Firebase: ${error.message}`);
+                    // Continuar mesmo com erro no Firebase para tentar limpar os metadados
+                }
+            }
+
+            // Excluir thumbnail do Firebase Storage, se existir
+            if (deletedVideo.thumbnailUrl && !deletedVideo.thumbnailUrl.startsWith('indexeddb-thumb://')) {
+                try {
+                    await deleteThumbnailFromFirebase(deletedVideo.thumbnailUrl);
+                    console.log(`Thumbnail excluída do Firebase Storage: ${deletedVideo.thumbnailUrl}`);
+                } catch (error) {
+                    console.error(`Erro ao excluir thumbnail do Firebase: ${error.message}`);
+                    // Continuar mesmo com erro no Firebase para tentar limpar os metadados
+                }
+            }
+        }
+
+        // Excluir do IndexedDB (vídeos antigos ou metadados)
         const result = await deleteVideoWithMetadata(numericId);
 
         if (result) {
