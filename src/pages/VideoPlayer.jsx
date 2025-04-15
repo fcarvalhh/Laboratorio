@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap'
 import { getVideoById, getVideos } from '../data/videos'
 import IndexedDBVideoPlayer from '../components/IndexedDBVideoPlayer'
+import ThumbnailImage from '../components/ThumbnailImage'
 
 function VideoPlayer() {
     const { id } = useParams()
@@ -54,6 +55,11 @@ function VideoPlayer() {
     const handleVideoError = (errorMsg) => {
         console.error('Erro no player de vídeo:', errorMsg);
         setError(`Erro ao reproduzir o vídeo: ${errorMsg}`);
+    }
+
+    const handleThumbnailError = (errorMsg) => {
+        console.error('Erro na thumbnail:', errorMsg);
+        // Não exibimos mensagem de erro para o usuário, apenas logamos
     }
 
     if (isLoading) {
@@ -111,7 +117,7 @@ function VideoPlayer() {
                             className="w-100 h-100"
                             style={{ objectFit: 'contain' }}
                             controls={true}
-                            poster={video.thumbnail}
+                            poster={video.thumbnailUrl}
                             onContextMenu={handleRightClick}
                             onError={handleVideoError}
                         />
@@ -125,13 +131,29 @@ function VideoPlayer() {
                 </div>
 
                 <Card.Body>
-                    <h1 className="h3 fw-bold mb-2">{video.title}</h1>
-                    <div className="text-muted small mb-3">
-                        {video.fileName && <div>Arquivo: {video.fileName}</div>}
-                        {video.order && <div>Ordem: {video.order}</div>}
-                        {video.timestamp && <div>Adicionado em: {new Date(video.timestamp).toLocaleString()}</div>}
-                        {video.lastUpdated && <div>Última atualização: {new Date(video.lastUpdated).toLocaleString()}</div>}
+                    <div className="d-flex align-items-start mb-3">
+                        {video.thumbnailUrl && (
+                            <div className="me-3 rounded border" style={{ width: '100px', height: '75px', overflow: 'hidden', flexShrink: 0 }}>
+                                <ThumbnailImage
+                                    thumbnailUrl={video.thumbnailUrl}
+                                    alt={`Thumbnail para ${video.title}`}
+                                    className="w-100 h-100"
+                                    style={{ objectFit: 'cover' }}
+                                    onError={handleThumbnailError}
+                                />
+                            </div>
+                        )}
+                        <div>
+                            <h1 className="h3 fw-bold mb-2">{video.title}</h1>
+                            <div className="text-muted small mb-3">
+                                {video.fileName && <div>Arquivo: {video.fileName}</div>}
+                                {video.order && <div>Ordem: {video.order}</div>}
+                                {video.timestamp && <div>Adicionado em: {new Date(video.timestamp).toLocaleString()}</div>}
+                                {video.lastUpdated && <div>Última atualização: {new Date(video.lastUpdated).toLocaleString()}</div>}
+                            </div>
+                        </div>
                     </div>
+
                     <hr className="my-3" />
                     <h2 className="h5 fw-bold mb-2">Descrição</h2>
                     <p className="text-secondary">{video.description || "Sem descrição"}</p>
@@ -159,13 +181,19 @@ function VideoPlayer() {
                                         className="text-decoration-none"
                                     >
                                         <div className="d-flex p-2 border rounded hover-bg-light">
-                                            <div className="video-thumbnail rounded me-2" style={{ width: '4rem', height: '3rem' }}>
-                                                {related.url ? (
+                                            <div className="video-thumbnail rounded me-2" style={{ width: '4rem', height: '3rem', overflow: 'hidden' }}>
+                                                {related.thumbnailUrl ? (
+                                                    <ThumbnailImage
+                                                        thumbnailUrl={related.thumbnailUrl}
+                                                        alt={`Thumbnail para ${related.title}`}
+                                                        className="w-100 h-100"
+                                                        style={{ objectFit: 'cover' }}
+                                                        onError={handleThumbnailError}
+                                                    />
+                                                ) : (
                                                     <div className="w-100 h-100 bg-light d-flex justify-content-center align-items-center">
                                                         <span className="fs-6">🎬</span>
                                                     </div>
-                                                ) : (
-                                                    <div className="fs-6">🎬</div>
                                                 )}
                                             </div>
                                             <div>

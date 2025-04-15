@@ -1,14 +1,15 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'videosDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const VIDEO_STORE = 'videos';
 const METADATA_STORE = 'metadata';
+const THUMBNAIL_STORE = 'thumbnails';
 
 // Inicializa o banco de dados IndexedDB
 const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion, newVersion, transaction) {
             // Cria um object store para os arquivos de vídeo
             if (!db.objectStoreNames.contains(VIDEO_STORE)) {
                 db.createObjectStore(VIDEO_STORE);
@@ -20,13 +21,18 @@ const initDB = async () => {
                 metadataStore.createIndex('fileName', 'fileName', { unique: true });
                 metadataStore.createIndex('order', 'order', { unique: false });
             }
+
+            // Cria um object store para as thumbnails
+            if (!db.objectStoreNames.contains(THUMBNAIL_STORE)) {
+                db.createObjectStore(THUMBNAIL_STORE);
+            }
         },
     });
 };
 
 /**
  * Converte um arquivo Blob/File para uma string base64 para armazenamento
- * @param {Blob} blob - O arquivo de vídeo
+ * @param {Blob} blob - O arquivo de vídeo ou imagem
  * @returns {Promise<string>} - String base64 representando o arquivo
  */
 const blobToBase64 = (blob) => {
@@ -77,6 +83,55 @@ export const uploadVideo = async (file, videoId, progressCallback) => {
         return `indexeddb://${videoId}`;
     } catch (error) {
         console.error('Erro ao armazenar vídeo:', error);
+        throw error;
+    }
+};
+
+/**
+ * Faz o upload de uma imagem de thumbnail para o IndexedDB
+ * @param {File} file - A imagem thumbnail a ser enviada
+ * @param {string} thumbnailId - ID único para a thumbnail
+ * @returns {Promise<string>} - Um identificador para a thumbnail armazenada
+ */
+export const uploadThumbnail = async (file, thumbnailId) => {
+    try {
+        // Verificar se é uma imagem
+        if (!file.type.startsWith('image/')) {
+            throw new Error('O arquivo não é uma imagem válida');
+        }
+
+        // Limitar o tamanho da imagem (2MB)
+        const MAX_SIZE = 2 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            throw new Error(`A imagem é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo é 2MB.`);
+        }
+
+        // Converter a imagem para base64
+        const imageBase64 = await blobToBase64(file);
+
+        // Armazenar no IndexedDB
+        const db = await initDB();
+        await db.put(THUMBNAIL_STORE, imageBase64, thumbnailId);
+
+        // Retornar um URL de referência para a thumbnail
+        return `indexeddb-thumb://${thumbnailId}`;
+    } catch (error) {
+        console.error('Erro ao armazenar thumbnail:', error);
+        throw error;
+    }
+};
+
+/**
+ * Recupera uma thumbnail do IndexedDB
+ * @param {string} thumbnailId - ID da thumbnail
+ * @returns {Promise<string>} - String base64 da thumbnail
+ */
+export const getThumbnail = async (thumbnailId) => {
+    try {
+        const db = await initDB();
+        return await db.get(THUMBNAIL_STORE, thumbnailId);
+    } catch (error) {
+        console.error('Erro ao recuperar thumbnail:', error);
         throw error;
     }
 };
@@ -156,19 +211,27 @@ export const deleteVideoWithMetadata = async (id) => {
             return false;
         }
 
-        // Extrair o ID do vídeo (que pode estar em videoId ou na URL)
+        // Extrair o ID do vídeo e da thumbnail
         const videoStorageId = metadata.videoId ||
             (metadata.url && metadata.url.startsWith('indexeddb://')
                 ? metadata.url.replace('indexeddb://', '')
                 : null);
 
-        if (!videoStorageId) {
-            console.warn(`ID de armazenamento de vídeo não encontrado para ${id}`);
-            // Mesmo que não encontremos o vídeo, ainda podemos excluir os metadados
-        } else {
-            // Excluir o vídeo do armazenamento
+        const thumbnailStorageId = metadata.thumbnailId ||
+            (metadata.thumbnailUrl && metadata.thumbnailUrl.startsWith('indexeddb-thumb://')
+                ? metadata.thumbnailUrl.replace('indexeddb-thumb://', '')
+                : null);
+
+        // Excluir o vídeo do armazenamento
+        if (videoStorageId) {
             await db.delete(VIDEO_STORE, videoStorageId);
             console.log(`Vídeo excluído do armazenamento: ${videoStorageId}`);
+        }
+
+        // Excluir a thumbnail se existir
+        if (thumbnailStorageId) {
+            await db.delete(THUMBNAIL_STORE, thumbnailStorageId);
+            console.log(`Thumbnail excluída do armazenamento: ${thumbnailStorageId}`);
         }
 
         // Excluir os metadados

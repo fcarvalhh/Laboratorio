@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Container, Row, Col, Card, Spinner, Button, Modal, Form } from 'react-bootstrap'
 import { getVideos, updateVideo, deleteVideo } from '../data/videos'
-import IndexedDBVideoPlayer from '../components/IndexedDBVideoPlayer'
+import ThumbnailImage from '../components/ThumbnailImage'
 
 function VideoList() {
     const [videos, setVideos] = useState([])
@@ -234,20 +234,34 @@ function VideoList() {
 function VideoCard({ video, onEdit, onDelete }) {
     const [thumbnailError, setThumbnailError] = useState(false);
 
+    const handleThumbnailError = (errorMsg) => {
+        console.error('Erro na thumbnail:', errorMsg);
+        setThumbnailError(true);
+    };
+
     return (
         <Card className="h-100 shadow-sm video-card">
-            <div className="video-thumbnail">
-                {video.url && !thumbnailError ? (
-                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                        <div className="thumbnail-placeholder">
-                            <span className="fs-3">🎬</span>
-                        </div>
-                    </div>
+            <div className="video-thumbnail position-relative">
+                {video.thumbnailUrl && !thumbnailError ? (
+                    <ThumbnailImage
+                        thumbnailUrl={video.thumbnailUrl}
+                        alt={`Thumbnail para ${video.title}`}
+                        className="w-100 h-100"
+                        style={{ objectFit: 'cover' }}
+                        onError={handleThumbnailError}
+                    />
                 ) : (
-                    <div className="thumbnail-placeholder">
+                    <div className="thumbnail-placeholder d-flex justify-content-center align-items-center bg-light">
                         <span className="fs-3">🎬</span>
                     </div>
                 )}
+                <Link
+                    to={`/videos/${video.id}`}
+                    className="play-button position-absolute top-50 start-50 translate-middle bg-dark bg-opacity-50 rounded-circle d-flex justify-content-center align-items-center"
+                    style={{ width: '40px', height: '40px' }}
+                >
+                    <span className="text-white fs-5">▶️</span>
+                </Link>
             </div>
 
             <Card.Body>
@@ -279,12 +293,6 @@ function VideoCard({ video, onEdit, onDelete }) {
                         >
                             🗑️
                         </Button>
-                        <Link
-                            to={`/videos/${video.id}`}
-                            className="btn btn-sm btn-outline-primary"
-                        >
-                            ▶️
-                        </Link>
                     </div>
                 </div>
             </Card.Body>
