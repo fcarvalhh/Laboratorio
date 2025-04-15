@@ -11,6 +11,12 @@ function VideoPlayer() {
     const [isLoading, setIsLoading] = useState(true)
     const videoRef = useRef(null)
 
+    // Função para bloquear o menu de contexto (clique com botão direito)
+    const handleRightClick = (e) => {
+        e.preventDefault();
+        return false;
+    }
+
     useEffect(() => {
         const fetchVideo = async () => {
             setIsLoading(true)
@@ -94,6 +100,7 @@ function VideoPlayer() {
                             style={{ objectFit: 'contain' }}
                             controls
                             poster={video.thumbnail}
+                            onContextMenu={handleRightClick}
                         />
                     ) : (
                         <div className="text-center">
